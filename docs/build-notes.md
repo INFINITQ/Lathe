@@ -77,6 +77,35 @@ because the same code runs here.
 - **"Developer: Startup performance"** shows each start-up step of the current window (Rust's
   from the boot data, the page's from `performance` marks).
 
+## CI and releases (GitHub Actions)
+
+- **Two workflows, both on `windows-latest`** (Lathe only builds on Windows):
+  - `ci.yml` runs `pnpm verify --quick` on pull requests into `main`;
+  - `release.yml` builds the installer for `v*` tags, for **Run workflow**, and for pull requests
+    that change it. Only tag builds make a release (a draft), in a separate job: the only one
+    with a token that can write to the repository, so the build never holds one.
+- **Toolchains:** pnpm comes from `packageManager` in `package.json`, Node is 24, and Rust is
+  `RUST_TOOLCHAIN` in each workflow, kept in step with `rust-version` in `Cargo.toml`.
+- **Actions are pinned by commit SHA,** with the version in a comment. When updating one:
+  - pin the commit, not the tag object. `git ls-remote --tags https://github.com/<owner>/<repo>`
+    lists an annotated tag twice, and the `^{}` line is the commit (pnpm/action-setup and
+    rust-cache use annotated tags);
+  - pick a release at least 3 days old, the same rule as `minimumReleaseAge` for npm.
+- **A PowerShell `run:` step doesn't stop at a failing program.** Only the last exit code fails
+  the step, so the scripts check `$LASTEXITCODE` after each `cargo` and `rustup` call.
+- **Run workflow needs the workflow on `main`.** The button only appears for workflows on the
+  default branch, and a workflow that isn't there yet can only be dispatched (with the API or
+  `gh`) after it has run once. That's why `release.yml` also runs on pull requests that change
+  it: a new version of it gets a test build before it's merged.
+- **Caches:** a run can restore caches from its own branch or tag and from `main`, nothing else.
+  A pull request's caches only help later pushes to it, and a tag's only that same tag, so tag
+  builds don't save one and build cold unless `main` has a cache.
+- **Version checks:** a tag build stops unless the tag is `v` plus the version in both
+  `tauri.conf.json` and `Cargo.toml`, and unless `Cargo.lock` was updated after the bump
+  (`cargo fetch --locked`).
+- **Unsigned:** the installer has no code signature yet, so SmartScreen warns about downloaded
+  copies ("More info", then "Run anyway").
+
 ## Research findings to apply (2026-11-03)
 
 - **LSP:** `@codemirror/lsp-client` 6.3.0's transport passes bare JSON strings, so Rust strips
