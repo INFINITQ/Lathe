@@ -3,8 +3,11 @@ import { useEffect, useState } from 'react';
 import { type TerminalProfile, backend } from '../../lib/backend';
 import { cn } from '../../lib/cn';
 import { DropdownMenuButton } from '../../ui/Menu';
-import { TerminalView } from './TerminalView';
+import { lazyView } from '../../ui/lazy';
 import { closeTerminal, newTerminal, setActiveTerminal, useTerminals } from './store';
+
+// xterm is big: it loads the first time a terminal shows.
+const TerminalView = lazyView(() => import('./TerminalView').then((m) => m.TerminalView));
 
 /** The terminal panel: the active terminal, and a list of them when there's more than one. */
 export function TerminalPanel() {

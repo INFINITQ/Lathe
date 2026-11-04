@@ -42,11 +42,14 @@ export function showView(view: ViewId, toggle = false) {
     return;
   }
   useLayout.setState({ view, sidebarVisible: true, zen: false });
-  // Focus the view once it's on screen.
-  requestAnimationFrame(() => {
+  // Focus the view once it's on screen (one that loads on first use takes a few frames).
+  let frames = 0;
+  const focus = () => {
     const el = document.querySelector<HTMLElement>(`[data-view="${view}"] [data-autofocus]`);
-    el?.focus();
-  });
+    if (el) el.focus();
+    else if (++frames < 60) requestAnimationFrame(focus);
+  };
+  requestAnimationFrame(focus);
 }
 
 export function toggleSidebar() {

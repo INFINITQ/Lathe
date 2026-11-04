@@ -36,6 +36,8 @@ export const DEFAULT_SETTINGS = {
   'editor.scrollBeyondLastLine': true,
   'editor.formatOnSave': false,
   'editor.emmet': true,
+  /** Lighter editing for big files (see editor/setup.ts). */
+  'editor.largeFileOptimizations': true,
   /** Vim's modes and keys in the editor. */
   'editor.vim': false,
   'files.autoSave': 'off' as 'off' | 'afterDelay' | 'onFocusChange',

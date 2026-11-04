@@ -9,7 +9,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-export const EXE = 'target/debug/lathe.exe';
+/** The build under test: the debug build, or another one (`pnpm build:perf`'s) by LATHE_E2E_EXE. */
+export const EXE = process.env.LATHE_E2E_EXE ?? 'target/debug/lathe.exe';
 
 export type RunningApp = {
   page: Page;

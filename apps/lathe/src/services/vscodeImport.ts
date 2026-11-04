@@ -72,6 +72,7 @@ const SETTINGS: Record<string, [string, Convert]> = {
   'editor.folding': ['editor.folding', bool],
   'editor.scrollBeyondLastLine': ['editor.scrollBeyondLastLine', bool],
   'editor.formatOnSave': ['editor.formatOnSave', bool],
+  'editor.largeFileOptimizations': ['editor.largeFileOptimizations', bool],
   'editor.stickyScroll.enabled': ['editor.stickyScroll.enabled', bool],
   'editor.inlayHints.enabled': ['editor.inlayHints.enabled', offFor('off', 'offUnlessPressed')],
   'files.autoSave': [

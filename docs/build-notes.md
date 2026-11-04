@@ -58,6 +58,25 @@ because the same code runs here.
 - **Channels:** JSON under 8 KB and raw payloads under 1 KB go through `webview.eval`, and larger
   ones through a fetch round trip, so batch messages.
 
+## Speed
+
+- **Measure at release speed:** `pnpm build:perf` builds into `target\perf` with debug assertions
+  on, which keeps the test hooks; `$env:LATHE_E2E_EXE = 'target/perf/release/lathe.exe'` points
+  the end-to-end tests (the budgets above all) at it. The debug build's numbers aren't release
+  numbers.
+- **`opt-level = 3` didn't pay:** 3 MB more, and within a few percent on every budget. Whole-program LTO
+  also ignores per-crate `opt-level`: the final code follows the binary's level,
+  so the release profile's own `opt-level` is what counts.
+- **Start-up JavaScript:** anything not on the first screen loads on first use (`ui/lazy.tsx`
+  for views; dynamic `import()` for editor extensions such as Vim and Emmet). Check
+  `dist/index.html`'s preloads after adding a dependency: a static import from a start-up module
+  pulls a whole library back in.
+- **Timing a UI step from a test:** wait inside the page (a `MutationObserver` on the result)
+  rather than with locators from outside, which mostly time the test's own round trips and can
+  catch the previous screen.
+- **"Developer: Startup performance"** shows each start-up step of the current window (Rust's
+  from the boot data, the page's from `performance` marks).
+
 ## Research findings to apply (2026-11-03)
 
 - **LSP:** `@codemirror/lsp-client` 6.3.0's transport passes bare JSON strings, so Rust strips

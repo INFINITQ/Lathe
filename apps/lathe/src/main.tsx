@@ -8,7 +8,11 @@ import { backend } from './lib/backend';
 import { applyAppearance } from './lib/theme';
 import { setDefaultKeybindings } from './services/keybindings';
 import { handleLaunch, restoreDebugState, restoreSession } from './services/session';
+import { markStartup } from './services/startup';
 import { DEFAULT_KEYBINDINGS, registerWorkbenchCommands } from './workbench/commands';
+
+// Every module above has loaded and run.
+markStartup('script');
 
 registerWorkbenchCommands();
 setDefaultKeybindings(DEFAULT_KEYBINDINGS);
@@ -28,6 +32,7 @@ requestAnimationFrame(() =>
   requestAnimationFrame(() => {
     backend()
       .appReady()
+      .then(() => markStartup('shown'))
       .catch((err: unknown) => console.error('app_ready failed', err));
   }),
 );
@@ -41,4 +46,5 @@ void (async () => {
   } catch (err) {
     console.error('Restoring the session failed', err);
   }
+  markStartup('restored');
 })();

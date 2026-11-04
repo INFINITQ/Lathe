@@ -59,7 +59,9 @@ pub fn create_environment(data_dir: &Path) -> Result<ICoreWebView2Environment> {
         // Crash dumps stay on this PC (WebView2 uploads them to Microsoft otherwise, and a dump
         // can contain your code). `clear_crash_reports` deletes old ones.
         options.set_is_custom_crash_reporting_enabled(true);
-        options.set_enable_tracking_prevention(true);
+        // Off: Lathe's pages are its own and can't reach the internet (the proxy above), so
+        // tracking prevention would only cost start-up time (as WebView2's docs advise).
+        options.set_enable_tracking_prevention(false);
         options.set_scroll_bar_style(COREWEBVIEW2_SCROLLBAR_STYLE_FLUENT_OVERLAY);
     }
 

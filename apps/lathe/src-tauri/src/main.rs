@@ -40,6 +40,7 @@ pub use error::{Error, Result};
 pub const OPEN_EVENT: &str = "lathe://open";
 
 fn main() {
+    window::mark_main();
     // `lathe …` from a terminal (bin\lathe.cmd): hand the arguments over, maybe wait, and exit.
     if let Some(code) = cli::run_if_cli() {
         std::process::exit(code);

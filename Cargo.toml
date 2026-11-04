@@ -63,7 +63,11 @@ unsafe_op_in_unsafe_fn = "deny"
 # See clippy.toml: child processes go through lathe_core::proc.
 disallowed_methods = "deny"
 
-# Size-optimised release builds (Cargo only honours profiles in the workspace root).
+# Size-optimised release builds (Cargo only honours profiles in the workspace root). Speed-
+# optimised ones (opt-level 3, 3 MB bigger) measured within a few percent on every budget in
+# e2e/budgets.spec.ts (start-up, quick open, search, a 10 MB file): that work waits on the disk,
+# the IPC and the UI, not on Rust's code. With whole-program LTO the final code follows this
+# level, so per-crate overrides wouldn't apply anyway.
 # Panics unwind, so a bug in one feature can't take the whole editor down.
 [profile.release]
 codegen-units = 1

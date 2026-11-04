@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { allDocuments } from './editor/documents';
 import { reconfigureEditor } from './editor/setup';
 import { backend } from './lib/backend';
@@ -10,6 +10,7 @@ import { onDocumentSaved } from './editor/documents';
 import { lspFilesChanged, stopAllServers } from './lsp/manager';
 import { installDebugger, stopAllDebugging } from './debug/manager';
 import { installPlugins } from './plugins/manager';
+import { markStartup } from './services/startup';
 import { installUserKeybindings } from './services/userKeybindings';
 import { installUserSnippets } from './services/userSnippets';
 import { offerVsCodeImport } from './services/vscodeImport';
@@ -33,6 +34,9 @@ function listen(target: Window, event: string, handler: () => void): () => void 
 }
 
 export function App() {
+  // After React's first commit, before the browser paints it.
+  useLayoutEffect(() => markStartup('rendered'), []);
+
   useEffect(() => {
     // Context keys for keybindings and menus.
     const syncLayout = () => {

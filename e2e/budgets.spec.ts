@@ -69,6 +69,30 @@ test('stays within its budgets', async () => {
         performance.getEntriesByName('first-contentful-paint')[0]!.startTime,
     );
     results.startupMs = Math.round(painted - spawned);
+    // Where that time went: Rust's steps (from the boot data) and the page's (its marks).
+    await page.waitForFunction(() => performance.getEntriesByName('lathe:restored').length > 0);
+    const at = await page.evaluate(() => {
+      const boot = (window as unknown as { __LATHE_BOOT__?: { startup?: Record<string, number> } })
+        .__LATHE_BOOT__?.startup;
+      const mark = (name: string) => {
+        const entry = performance.getEntriesByName(`lathe:${name}`)[0];
+        return entry ? performance.timeOrigin + entry.startTime : 0;
+      };
+      return {
+        process: boot?.process ?? 0,
+        boot: boot?.boot ?? 0,
+        page: performance.timeOrigin,
+        script: mark('script'),
+        rendered: mark('rendered'),
+      };
+    });
+    if (at.process) {
+      results.rustMs = Math.round(at.boot - at.process);
+      results.webviewMs = Math.round(at.page - at.boot);
+    }
+    results.scriptsMs = Math.round(at.script - at.page);
+    results.renderMs = Math.round(at.rendered - at.script);
+    results.paintMs = Math.round(painted - at.rendered);
     results.memoryIdleMb = await settledMemory(page, app.pid);
 
     await page.getByRole('button', { name: 'Open folder', exact: true }).click();
@@ -87,16 +111,51 @@ test('stays within its budgets', async () => {
         { timeout: 30_000 },
       )
       .toContain('component_199.ts');
+    // Timed in the page, from typing the query to its own results showing (waiting from the
+    // outside would mostly time the test's round trips, or catch the previous list).
+    const timeQuery = (query: string, expected: string) =>
+      page.evaluate(
+        async ([q, want]) => {
+          const input = document.querySelector<HTMLInputElement>('[data-quick-input] input')!;
+          const first = () => document.querySelector('[data-quick-input] [role="option"]');
+          const type = (text: string) => {
+            const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+            set.call(input, text);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          };
+          const shows = (text: string) =>
+            new Promise<void>((done) => {
+              if (first()?.textContent?.includes(text)) return done();
+              const observer = new MutationObserver(() => {
+                if (!first()?.textContent?.includes(text)) return;
+                observer.disconnect();
+                done();
+              });
+              observer.observe(document.body, {
+                subtree: true,
+                childList: true,
+                characterData: true,
+              });
+            });
+          type('zzqqxx');
+          await shows('No matching files');
+          const started = performance.now();
+          type(q);
+          await shows(want);
+          return performance.now() - started;
+        },
+        [query, expected] as const,
+      );
     const searches: number[] = [];
-    for (const query of ['mod7cmp42', 'component_150', 'mod55cmp3', 'compo']) {
-      await input.fill('');
-      const started = Date.now();
-      await input.fill(query);
-      await page.getByRole('option').first().waitFor();
-      await expect(page.getByRole('option').first()).not.toContainText('Still indexing');
-      searches.push(Date.now() - started);
+    for (const [query, expected] of [
+      ['mod7cmp42', 'component_42'],
+      ['component_150', 'component_150'],
+      ['mod55cmp3', 'component_3'],
+      ['compo', 'component_'],
+    ] as const) {
+      searches.push(await timeQuery(query, expected));
     }
-    results.quickOpenMs = Math.max(...searches);
+    results.quickOpenMs = Math.round(Math.max(...searches));
 
     // Open the 10 MB file: once untimed (antivirus scans a new file the first time any program
     // opens it, which took 26 s here and isn't Lathe's time), then again, timed.
@@ -115,6 +174,9 @@ test('stays within its budgets', async () => {
     await page.keyboard.press('Enter');
     await expect(page.locator('.cm-content')).toContainText('computeSomething');
     results.openBigFileMs = Date.now() - opening;
+    // A 10 MB file opens in large-file mode: no minimap (and the other extras) for it.
+    // (Soft, so the numbers are still taken and printed if it fails.)
+    await expect.soft(page.locator('.cm-minimap')).toHaveCount(0);
 
     // Search across the 20,000 files and the 10 MB one. The first search also waits for
     // antivirus to scan each new file once (seconds, and not Lathe's time), so the timed one

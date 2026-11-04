@@ -2,8 +2,9 @@
 //! hidden until the UI has painted (so it never flashes white).
 
 use std::path::Path;
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use tauri::webview::NewWindowResponse;
@@ -42,6 +43,57 @@ struct Boot {
     recent: Vec<String>,
     launch: Launch,
     data_dir: String,
+    startup: Startup,
+}
+
+/// When start-up reached each step on the Rust side, in milliseconds since 1970, for the
+/// "Developer: Startup performance" report (the page adds its own steps).
+#[derive(Serialize)]
+struct Startup {
+    /// Windows created the process.
+    process: f64,
+    /// `main` began.
+    main: f64,
+    /// Settings and the last session are read; the window is created next.
+    boot: f64,
+}
+
+static MAIN_AT: OnceLock<f64> = OnceLock::new();
+
+/// Notes that `main` has begun (its first line calls this).
+pub fn mark_main() {
+    let _ = MAIN_AT.set(now_ms());
+}
+
+fn now_ms() -> f64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs_f64() * 1000.0)
+        .unwrap_or(0.0)
+}
+
+/// When Windows created this process (0 if it can't say).
+fn process_started_ms() -> f64 {
+    use windows::Win32::Foundation::FILETIME;
+    use windows::Win32::System::Threading::{GetCurrentProcess, GetProcessTimes};
+    let mut created = FILETIME::default();
+    let (mut exited, mut kernel, mut user) = (created, created, created);
+    // SAFETY: this process's pseudo-handle and four valid out-pointers.
+    let ok = unsafe {
+        GetProcessTimes(
+            GetCurrentProcess(),
+            &mut created,
+            &mut exited,
+            &mut kernel,
+            &mut user,
+        )
+    };
+    if ok.is_err() {
+        return 0.0;
+    }
+    // 100 ns ticks since 1601, to milliseconds since 1970.
+    let ticks = (u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime);
+    ticks.saturating_sub(116_444_736_000_000_000) as f64 / 10_000.0
 }
 
 pub fn create_main(app: &AppHandle<Wry>, data_dir: &Path) -> Result<()> {
@@ -75,6 +127,11 @@ pub fn create_main(app: &AppHandle<Wry>, data_dir: &Path) -> Result<()> {
                 .unwrap_or_default(),
         },
         data_dir: data_dir.display().to_string(),
+        startup: Startup {
+            process: process_started_ms(),
+            main: MAIN_AT.get().copied().unwrap_or(0.0),
+            boot: now_ms(),
+        },
     };
     let boot = serde_json::to_string(&boot).unwrap_or_else(|_| "{}".into());
 

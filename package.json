@@ -12,6 +12,7 @@
     "dev": "pnpm --filter @lathe/app tauri dev",
     "build": "pnpm --filter @lathe/app tauri build",
     "build:e2e": "cargo build -p lathe-testkit --bins && pnpm --filter @lathe/app tauri build --debug --no-bundle",
+    "build:perf": "node tools/build-perf.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rust": "cargo test --workspace",

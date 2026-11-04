@@ -80,14 +80,25 @@ const LAYOUT_KEYS = [
 
 /** Unsaved texts already backed up (Text objects are immutable, so a new one means an edit). */
 const backedUp = new Map<string, Text>();
+/** When each document was last backed up. */
+const backedUpAt = new Map<string, number>();
+/** A big unsaved file is copied to disk at most this often while you type (each copy moves
+ * the whole text); every unsaved file is still copied when Lathe closes. */
+const BIG_TEXT = 1_000_000;
+const BIG_TEXT_EVERY_MS = 15_000;
 
-async function backUpDirty(): Promise<string[]> {
+/** Backs up unsaved texts that changed (all of them now with `force`, as on closing). */
+async function backUpDirty(force = false): Promise<string[]> {
   const dirty = dirtyDocuments();
+  const now = Date.now();
   await Promise.all(
     dirty.map(async (doc) => {
       if (backedUp.get(doc.id) === doc.text) return;
+      const recent = now - (backedUpAt.get(doc.id) ?? 0) < BIG_TEXT_EVERY_MS;
+      if (!force && doc.text.length > BIG_TEXT && recent) return;
       await backend().session.saveBuffer(doc.id, doc.text.toString());
       backedUp.set(doc.id, doc.text);
+      backedUpAt.set(doc.id, now);
     }),
   );
   return dirty.map((d) => d.id);
@@ -111,9 +122,10 @@ function snapshot(): SessionFile {
   };
 }
 
-/** Saves the session and backs up unsaved editors now. */
-export async function flushSession() {
-  const keep = await backUpDirty();
+/** Saves the session and backs up unsaved editors (every one of them when `final`, as Lathe
+ * closes; otherwise a big one at most every 15 seconds). */
+export async function flushSession(final = false) {
+  const keep = await backUpDirty(final);
   await backend().session.save(snapshot());
   await backend().session.pruneBuffers(keep);
 }
@@ -207,14 +219,21 @@ export async function restoreSession(raw: unknown): Promise<boolean> {
   }
   const saved = session.editors?.groups ?? [];
   const slots: (Tab | null)[][] = saved.map((g) => g.tabs.map(() => null));
-  // Previews last: they open their file from disk, which mustn't get ahead of an unsaved copy.
-  for (const previews of [false, true]) {
-    for (const [g, group] of saved.entries()) {
-      for (const [t, tab] of group.tabs.entries()) {
-        if ((tab.kind === 'preview') !== previews) continue;
-        slots[g]![t] = await restoreTab(tab);
-      }
-    }
+  // Three waves, each in parallel: unsaved copies first (a file opened from disk mustn't get
+  // ahead of its unsaved copy), then the other editors, then previews (which open their file).
+  const waves: ((tab: SavedTab) => boolean)[] = [
+    (tab) => tab.kind !== 'preview' && tab.dirty,
+    (tab) => tab.kind !== 'preview' && !tab.dirty,
+    (tab) => tab.kind === 'preview',
+  ];
+  for (const inWave of waves) {
+    await Promise.all(
+      saved.flatMap((group, g) =>
+        group.tabs.map(async (tab, t) => {
+          if (inWave(tab)) slots[g]![t] = await restoreTab(tab);
+        }),
+      ),
+    );
   }
   const groups: Group[] = [];
   saved.forEach((group, g) => {
@@ -296,6 +315,6 @@ export async function beforeClose(): Promise<boolean> {
       }
     }
   }
-  await flushSession();
+  await flushSession(true);
   return true;
 }
