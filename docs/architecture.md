@@ -72,4 +72,5 @@ A workspace's own settings live in `.lathe/` in the folder.
 - The NSIS installer is per-user. Its hooks (`src-tauri/installer-hooks.nsh`) add "Open with
   Lathe" verbs, `OpenWithProgids` entries and Default Apps capabilities (never a file type's
   default), and put `bin` on the user PATH with `bin\lathe-path.ps1`, which keeps the PATH's
-  `REG_EXPAND_SZ` form. The uninstaller removes exactly what was added.
+  text and registry type (`REG_SZ` or `REG_EXPAND_SZ`). The uninstaller removes exactly what was
+  added.

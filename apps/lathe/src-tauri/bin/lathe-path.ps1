@@ -1,6 +1,7 @@
 # For Lathe's installer: adds Lathe's bin folder to your PATH, or with -Remove takes it out.
-# It changes only your own (per-user) PATH, and writes it back as it was written, so entries such
-# as %USERPROFILE%\... stay as they are. The installer tells running programs afterwards.
+# It changes only your own (per-user) PATH, and writes it back as it was written (the same text
+# and registry type), so entries such as %USERPROFILE%\... stay as they are. The installer tells
+# running programs afterwards.
 param(
   [Parameter(Mandatory = $true)] [string] $Dir,
   [switch] $Remove,
@@ -18,6 +19,16 @@ if ($Name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') {
 }
 $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
 try {
+  # REG_SZ stays REG_SZ and REG_EXPAND_SZ stays REG_EXPAND_SZ; a new value gets REG_EXPAND_SZ,
+  # Windows' usual type for PATH. A value that isn't text is left alone.
+  $kind = [Microsoft.Win32.RegistryValueKind]::ExpandString
+  if ($key.GetValueNames() -contains $Name) {
+    $kind = $key.GetValueKind($Name)
+    if ($kind -ne [Microsoft.Win32.RegistryValueKind]::String -and
+        $kind -ne [Microsoft.Win32.RegistryValueKind]::ExpandString) {
+      throw "Not a text value: $Name ($kind)"
+    }
+  }
   $raw = [string]$key.GetValue($Name, '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
   # Empty entries are kept too, so taking the folder out again gives back the very same text.
   $parts = @($raw -split ';')
@@ -29,7 +40,7 @@ try {
   else { $next = $parts + $Dir }
   $value = $next -join ';'
   if ($value -ne $raw) {
-    $key.SetValue($Name, $value, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+    $key.SetValue($Name, $value, $kind)
   }
 } finally {
   $key.Close()
