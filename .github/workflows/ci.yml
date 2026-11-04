@@ -1,0 +1,63 @@
+# Checks pull requests into main with `pnpm verify --quick`: Rust format, clippy and tests, then
+# TypeScript types, lint, format and unit tests. The debug build and the end-to-end tests that
+# drive the real app stay local (`pnpm verify`).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to a pull request replaces its older check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in step with rust-version in Cargo.toml.
+  RUST_TOOLCHAIN: 1.99-x86_64-pc-windows-msvc
+
+jobs:
+  verify:
+    name: pnpm verify --quick
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal --component 'clippy,rustfmt' --no-self-update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup default $env:RUST_TOOLCHAIN
+
+      - name: Restore the cargo cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          # Compiling dependencies is most of the work, so keep them even when a check fails.
+          cache-on-failure: true
+
+      - name: Install pnpm
+        # No version here: it comes from packageManager in package.json.
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm verify --quick
+        run: pnpm verify --quick

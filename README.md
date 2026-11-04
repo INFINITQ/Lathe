@@ -36,8 +36,9 @@ your VS Code settings, keybindings and snippets.
 
 ## Install
 
-Run `Lathe_<version>_x64-setup.exe`. It installs for you alone (no administrator rights) and
-adds:
+Download `Lathe_<version>_x64-setup.exe` from the newest release on the
+[Releases page](https://github.com/INFINITQ/Lathe/releases) and run it. It installs for you
+alone (no administrator rights) and adds:
 
 - **Open with Lathe** to the menus of files, folders and folder backgrounds (under "Show more
   options" on Windows 11);
@@ -46,6 +47,11 @@ adds:
 - `lathe` to your PATH (open a new terminal after installing).
 
 Uninstalling takes all of it out again.
+
+The installer isn't code-signed yet, so Windows SmartScreen may stop it with "Windows protected
+your PC". Click **More info**, then **Run anyway**. To check the download first, run
+`Get-FileHash Lathe_<version>_x64-setup.exe` in PowerShell: the hash it prints should match the
+one in the release's `.sha256` file.
 
 ## From a terminal
 
@@ -87,6 +93,34 @@ pnpm build            # the installer, in target\release\bundle\nsis
 pnpm build:perf       # a release-speed build with the test hooks, for measuring (target\perf)
 pnpm licenses:report  # docs/licenses.md
 ```
+
+GitHub runs `pnpm verify --quick` on every pull request into `main`
+([ci.yml](.github/workflows/ci.yml)).
+
+### Releasing
+
+GitHub builds the installer ([release.yml](.github/workflows/release.yml)) when you push a
+version tag:
+
+1. Set the new version in both `apps/lathe/src-tauri/tauri.conf.json` (`"version"`) and
+   `Cargo.toml` (`version` under `[workspace.package]`). Run `cargo check` so `Cargo.lock` picks
+   it up, then merge the change into `main`. (The `package.json` versions aren't used.)
+2. Tag that commit and push the tag:
+
+   ```powershell
+   git switch main
+   git pull
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+3. The Release workflow checks that the tag matches both versions, builds the installer and
+   makes a draft release with `Lathe_0.2.0_x64-setup.exe` and its `.sha256` checksum. Look it
+   over on the [Releases page](https://github.com/INFINITQ/Lathe/releases), then click
+   **Publish release**.
+
+To build an installer without releasing it, open **Actions › Release › Run workflow** and pick a
+branch. The installer is attached to the run as an artifact.
 
 ## Layout
 
