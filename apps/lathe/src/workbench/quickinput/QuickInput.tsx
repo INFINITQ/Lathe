@@ -121,7 +121,7 @@ function useFileItems(query: string, enabled: boolean): QuickItem[] {
           );
         })
         .catch(() => {});
-    }, 25);
+    }, 0);
     return () => {
       stale = true;
       clearTimeout(timer);

@@ -42,6 +42,7 @@ import {
   showEditorTab,
   splitGroup,
 } from './editors/store';
+import { showStartupReport } from '../services/startup';
 import { ensureKeybindingsFile } from '../services/userKeybindings';
 import { snippetsFileFor } from '../services/userSnippets';
 import { importFromVsCode } from '../services/vscodeImport';
@@ -957,6 +958,12 @@ export function registerWorkbenchCommands() {
         const doc = getActiveDoc();
         if (doc) openPreview(doc, true);
       },
+    },
+    {
+      id: 'developer.startupPerformance',
+      title: 'Startup performance',
+      category: 'Developer',
+      run: () => void showStartupReport(),
     },
     {
       id: 'help.about',

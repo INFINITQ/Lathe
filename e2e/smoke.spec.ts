@@ -53,6 +53,26 @@ test.describe('workbench', () => {
     await page.keyboard.press('Control+B');
     await expect(page.getByRole('complementary', { name: 'Sidebar' })).toBeVisible();
   });
+
+  test('Developer: Startup performance shows where start-up time went', async () => {
+    const { page } = app;
+    await page.waitForFunction(() => performance.getEntriesByName('lathe:restored').length > 0);
+    await page.keyboard.press('Control+Shift+P');
+    await page.getByRole('combobox').fill('>Startup performance');
+    await expect(page.getByRole('option').first()).toContainText('Startup performance');
+    await page.keyboard.press('Enter');
+    const panel = page.getByRole('region', { name: 'Panel' });
+    await expect(panel).toContainText('Start-up of this window');
+    // (First paint isn't listed: the hidden test window may not have painted yet.)
+    for (const step of [
+      'Rust starts',
+      'WebView2 starts and asks for the page',
+      'The UI loads and runs its scripts',
+      'Editors are back',
+    ]) {
+      await expect(panel).toContainText(step);
+    }
+  });
 });
 
 test('opens a folder, edits a CRLF + BOM file without changing its format, and splits', async () => {

@@ -95,6 +95,8 @@ export interface Boot {
   recent: string[];
   launch: Launch;
   dataDir: string;
+  /** When start-up reached each step in Rust (ms since 1970); absent in tests' fake backend. */
+  startup?: { process: number; main: number; boot: number };
 }
 
 export interface SystemInfo {

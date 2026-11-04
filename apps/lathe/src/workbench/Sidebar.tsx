@@ -1,9 +1,12 @@
-import { PluginsView } from '../plugins/PluginsView';
-import { RunView } from '../run/RunView';
+import { lazyView } from '../ui/lazy';
 import { Explorer } from './explorer/Explorer';
-import { ScmView } from './scm/ScmView';
-import { SearchView } from './search/SearchView';
 import { type ViewId, useLayout } from './layout';
+
+// The Explorer is what shows at start; the other views load the first time you open them.
+const PluginsView = lazyView(() => import('../plugins/PluginsView').then((m) => m.PluginsView));
+const RunView = lazyView(() => import('../run/RunView').then((m) => m.RunView));
+const ScmView = lazyView(() => import('./scm/ScmView').then((m) => m.ScmView));
+const SearchView = lazyView(() => import('./search/SearchView').then((m) => m.SearchView));
 
 const TITLES: Record<ViewId, string> = {
   explorer: 'Explorer',

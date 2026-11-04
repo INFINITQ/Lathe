@@ -2,7 +2,7 @@
 // compared with the index (what `git diff` shows; staged changes have no bars). Clicking a bar
 // opens the hunk under it: the lines that were there, with Revert and Stage buttons.
 
-import { Chunk } from '@codemirror/merge';
+import type { Chunk } from '@codemirror/merge';
 import { RangeSet, StateEffect, StateField, Text } from '@codemirror/state';
 import {
   Decoration,
@@ -31,6 +31,16 @@ const baseField = StateField.define<Base | null>({
   },
 });
 
+// The diff library loads with the first file that has a Git base to compare with (chunks only
+// exist once it has).
+let merge: typeof import('@codemirror/merge') | null = null;
+let mergeLoading: Promise<unknown> | null = null;
+const loadMerge = () =>
+  (mergeLoading ??= import('@codemirror/merge')
+    .then((m) => (merge = m))
+    // Tried again with the next file (meanwhile there are no bars).
+    .catch(() => (mergeLoading = null)));
+
 const setChunks = StateEffect.define<readonly Chunk[]>();
 const chunkField = StateField.define<readonly Chunk[]>({
   create: () => [],
@@ -41,6 +51,7 @@ const chunkField = StateField.define<readonly Chunk[]>({
     // past the end of the document (its last line has no newline), so clamp before mapping.
     const length = tr.startState.doc.length;
     const map = (pos: number, assoc: number) => tr.changes.mapPos(Math.min(pos, length), assoc);
+    const { Chunk } = merge!;
     return chunks.map(
       (c) => new Chunk(c.changes, c.fromA, c.toA, map(c.fromB, -1), map(c.toB, 1), c.precise),
     );
@@ -243,7 +254,7 @@ function tracker(path: string) {
       }
       async load() {
         this.revision = useGit.getState().revision;
-        const blob = await baseOf(path, 'index');
+        const [blob] = await Promise.all([baseOf(path, 'index'), loadMerge()]);
         if (this.destroyed) return;
         const base = blob ? { text: Text.of(blob.text.split('\n')), format: blob.format } : null;
         this.view.dispatch({ effects: setBase.of(base) });
@@ -257,7 +268,10 @@ function tracker(path: string) {
       diff() {
         if (this.destroyed) return;
         const base = this.view.state.field(baseField);
-        const chunks = base ? Chunk.build(base.text, this.view.state.doc, { scanLimit: 5000 }) : [];
+        const chunks =
+          base && merge
+            ? merge.Chunk.build(base.text, this.view.state.doc, { scanLimit: 5000 })
+            : [];
         this.view.dispatch({ effects: setChunks.of(chunks) });
       }
       destroy() {

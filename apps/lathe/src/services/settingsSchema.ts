@@ -216,6 +216,12 @@ export const SETTINGS_SCHEMA = {
     max: 20000,
     step: 100,
   },
+  'editor.largeFileOptimizations': {
+    title: 'Large files',
+    description:
+      'For files over 2 MB or 50,000 lines, leave out the minimap, sticky scroll, guides, folding, Git bars, blame and the language server, so they open and scroll quickly.',
+    category: 'Editor',
+  },
   'editor.emmet': {
     title: 'Emmet',
     description: 'Expand abbreviations such as ul>li*3 with Tab in HTML, CSS and JSX.',

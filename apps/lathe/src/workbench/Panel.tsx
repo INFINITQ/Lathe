@@ -3,9 +3,22 @@ import { cn } from '../lib/cn';
 import { type PanelId, showPanel, useLayout } from './layout';
 import { OutputActions, OutputView, ProblemsView } from './ProblemsView';
 import { TerminalActions, TerminalPanel } from './terminal/TerminalPanel';
-import { DebugConsoleActions, DebugConsoleView } from '../debug/DebugConsole';
 import { useInteractive } from '../notebook/interactive';
-import { InteractiveActions, InteractiveView } from '../notebook/InteractiveView';
+import { lazyView } from '../ui/lazy';
+
+// The debug console and the Interactive panel load the first time they show.
+const DebugConsoleView = lazyView(() =>
+  import('../debug/DebugConsole').then((m) => m.DebugConsoleView),
+);
+const DebugConsoleActions = lazyView(() =>
+  import('../debug/DebugConsole').then((m) => m.DebugConsoleActions),
+);
+const InteractiveView = lazyView(() =>
+  import('../notebook/InteractiveView').then((m) => m.InteractiveView),
+);
+const InteractiveActions = lazyView(() =>
+  import('../notebook/InteractiveView').then((m) => m.InteractiveActions),
+);
 
 const TABS: { id: PanelId; label: string }[] = [
   { id: 'problems', label: 'Problems' },

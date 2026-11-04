@@ -27,12 +27,8 @@ import { getSetting } from '../../services/settings';
 import { ContextMenuArea, DropdownMenuButton, type MenuEntry } from '../../ui/Menu';
 import { fileIcon } from '../fileIcons';
 import { useWorkspace } from '../workspaceStore';
-import { DiffEditor } from './DiffEditor';
-import { NotebookEditor } from '../../notebook/NotebookEditor';
+import { lazyView } from '../../ui/lazy';
 import { ImageViewer } from './ImageViewer';
-import { KeybindingsEditor } from './KeybindingsEditor';
-import { MarkdownPreview } from './MarkdownPreview';
-import { SettingsEditor } from './SettingsEditor';
 import { Welcome } from './Welcome';
 import {
   type Group,
@@ -49,6 +45,18 @@ import {
   tabTitle,
   useEditors,
 } from './store';
+
+// Editors for diffs, notebooks, settings, keyboard shortcuts and Markdown previews load the
+// first time one opens.
+const DiffEditor = lazyView(() => import('./DiffEditor').then((m) => m.DiffEditor));
+const NotebookEditor = lazyView(() =>
+  import('../../notebook/NotebookEditor').then((m) => m.NotebookEditor),
+);
+const KeybindingsEditor = lazyView(() =>
+  import('./KeybindingsEditor').then((m) => m.KeybindingsEditor),
+);
+const MarkdownPreview = lazyView(() => import('./MarkdownPreview').then((m) => m.MarkdownPreview));
+const SettingsEditor = lazyView(() => import('./SettingsEditor').then((m) => m.SettingsEditor));
 
 /** One editor group: its tab strip, breadcrumbs and the active tab's editor. */
 export function EditorGroupView({ group, index }: { group: Group; index: number }) {

@@ -31,12 +31,12 @@ export function watchSystemTheme(listener: (dark: boolean) => void): () => void 
 /** Accent colours: the fill, the colour for text and icons, and the ink on top of the fill. */
 const ACCENTS: Record<Accent, { dark: [string, string, string]; light: [string, string, string] }> =
   {
-    lime: { dark: ['#d9f99d', '#d9f99d', '#0a0a0b'], light: ['#d9f99d', '#4d7c0f', '#1a2e05'] },
-    mint: { dark: ['#a7f3d0', '#6ee7b7', '#022c22'], light: ['#a7f3d0', '#047857', '#022c22'] },
+    lime: { dark: ['#d9f99d', '#d9f99d', '#0a0a0b'], light: ['#d9f99d', '#3f6212', '#1a2e05'] },
+    mint: { dark: ['#a7f3d0', '#6ee7b7', '#022c22'], light: ['#a7f3d0', '#065f46', '#022c22'] },
     sky: { dark: ['#bae6fd', '#7dd3fc', '#082f49'], light: ['#bae6fd', '#0369a1', '#082f49'] },
     violet: { dark: ['#ddd6fe', '#c4b5fd', '#2e1065'], light: ['#ddd6fe', '#6d28d9', '#2e1065'] },
     rose: { dark: ['#fecdd3', '#fda4af', '#4c0519'], light: ['#fecdd3', '#be123c', '#4c0519'] },
-    amber: { dark: ['#fde68a', '#fcd34d', '#451a03'], light: ['#fde68a', '#b45309', '#451a03'] },
+    amber: { dark: ['#fde68a', '#fcd34d', '#451a03'], light: ['#fde68a', '#92400e', '#451a03'] },
   };
 
 let systemIsDark = backend().boot().systemDark;

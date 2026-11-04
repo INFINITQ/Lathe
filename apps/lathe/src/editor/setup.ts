@@ -32,12 +32,9 @@ import {
   rectangularSelection,
   scrollPastEnd,
 } from '@codemirror/view';
-import { abbreviationTracker } from '@emmetio/codemirror6-plugin';
-import { vim } from '@replit/codemirror-vim';
-import { defineVimCommands } from './vimCommands';
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';
 import { getSetting } from '../services/settings';
-import { type TextDoc, syncAnnotation } from './documents';
+import { type TextDoc, allDocuments, syncAnnotation } from './documents';
 import { findKeymap, findWidget } from './find';
 import { altClickAddsCursor, latheEditorKeymap } from './keymap';
 import { minimap } from './minimap';
@@ -48,6 +45,23 @@ import { gitGutter } from './gitGutter';
 import { outlineTracker } from './outline';
 import { stickyScroll } from './stickyScroll';
 import { latheTheme } from './theme';
+import { notify } from '../services/notifications';
+
+const LARGE_CHARS = 2_000_000;
+const LARGE_LINES = 50_000;
+
+/** A file big enough that the extras which look at all of it, or draw something for every line,
+ * are left out (the minimap, sticky scroll, guides, folding, whitespace marks, Git bars, blame
+ * and the language server). Typing, highlighting and search stay. */
+export function isLargeDoc(doc: TextDoc): boolean {
+  return (
+    getSetting('editor.largeFileOptimizations') &&
+    (doc.text.length > LARGE_CHARS || doc.text.lines > LARGE_LINES)
+  );
+}
+
+const toldLarge = new WeakSet<TextDoc>();
+const large = isLargeDoc;
 
 /** One compartment per setting-driven part, shared by every editor. */
 export const compartments = {
@@ -85,6 +99,49 @@ const EMMET_LANGUAGES = new Set([
   'vue',
   'svelte',
 ]);
+
+// Vim mode and Emmet are big, and many sessions never use them: each loads the first time an
+// editor needs it, and the open editors take it up then.
+let vimMode: Extension | null = null;
+let vimLoading: Promise<void> | null = null;
+let emmet: Extension | null = null;
+let emmetLoading: Promise<void> | null = null;
+
+function vimPart(): Extension {
+  if (!getSetting('editor.vim')) return [];
+  if (vimMode) return vimMode;
+  vimLoading ??= import('./vimCommands')
+    .then((m) => {
+      vimMode = m.vimMode();
+      for (const doc of allDocuments()) {
+        for (const view of doc.views)
+          view.dispatch({ effects: compartments.vim.reconfigure(vimPart()) });
+      }
+    })
+    // Tried again the next time an editor needs it.
+    .catch(() => {
+      vimLoading = null;
+    });
+  return [];
+}
+
+function emmetPart(language: string): Extension {
+  if (!getSetting('editor.emmet', language) || !EMMET_LANGUAGES.has(language)) return [];
+  if (emmet) return emmet;
+  emmetLoading ??= import('@emmetio/codemirror6-plugin')
+    .then((m) => {
+      emmet = m.abbreviationTracker();
+      for (const doc of allDocuments()) {
+        const part = emmetPart(doc.languageId);
+        for (const view of doc.views)
+          view.dispatch({ effects: compartments.emmet.reconfigure(part) });
+      }
+    })
+    .catch(() => {
+      emmetLoading = null;
+    });
+  return [];
+}
 
 /** The language server part of an editor (set by lsp/manager.ts, which loads after this). */
 let lspProvider: (doc: TextDoc) => Extension = () => [];
@@ -132,7 +189,9 @@ function indentFor(doc: TextDoc): Extension {
 function settingParts(doc: TextDoc) {
   const language = doc.languageId;
   const numbers = getSetting('editor.lineNumbers', language);
-  const whitespace = getSetting('editor.renderWhitespace', language);
+  const whitespace = large(doc) ? 'none' : getSetting('editor.renderWhitespace', language);
+  const on = (key: Parameters<typeof getSetting>[0]) =>
+    !large(doc) && getSetting(key, language) === true;
   return {
     indent: indentFor(doc),
     wrap: getSetting('editor.wordWrap', language) === 'on' ? EditorView.lineWrapping : [],
@@ -150,7 +209,7 @@ function settingParts(doc: TextDoc) {
           ? highlightTrailingWhitespace()
           : [],
     activeLine: getSetting('editor.renderLineHighlight', language) ? highlightActiveLine() : [],
-    guides: getSetting('editor.guides.indentation', language)
+    guides: on('editor.guides.indentation')
       ? indentationMarkers({
           thickness: 1,
           colors: {
@@ -165,19 +224,14 @@ function settingParts(doc: TextDoc) {
       getSetting('editor.matchBrackets', language) ? bracketMatching() : [],
       getSetting('editor.autoClosingBrackets', language) ? closeBrackets() : [],
     ],
-    folding: getSetting('editor.folding', language)
-      ? foldGutter({ openText: '⌄', closedText: '›' })
-      : [],
+    folding: on('editor.folding') ? foldGutter({ openText: '⌄', closedText: '›' }) : [],
     scrollPastEnd: getSetting('editor.scrollBeyondLastLine', language) ? scrollPastEnd() : [],
     readOnly: [EditorState.readOnly.of(doc.readOnly), EditorView.editable.of(!doc.readOnly)],
-    stickyScroll: getSetting('editor.stickyScroll.enabled', language) ? stickyScroll() : [],
-    blame: doc.path && getSetting('git.blame.inline') ? inlineBlame(doc.path) : [],
-    minimap: getSetting('editor.minimap.enabled', language) ? minimap() : [],
-    vim: getSetting('editor.vim') ? (defineVimCommands(), vim()) : [],
-    emmet:
-      getSetting('editor.emmet', language) && EMMET_LANGUAGES.has(language)
-        ? abbreviationTracker()
-        : [],
+    stickyScroll: on('editor.stickyScroll.enabled') ? stickyScroll() : [],
+    blame: doc.path && on('git.blame.inline') ? inlineBlame(doc.path) : [],
+    minimap: on('editor.minimap.enabled') ? minimap() : [],
+    vim: vimPart(),
+    emmet: emmetPart(language),
   };
 }
 
@@ -214,13 +268,25 @@ export function editorExtensions(
   options: { diff?: boolean } = {},
 ): Extension[] {
   const parts = settingParts(doc);
+  const lightweight = large(doc);
+  if (lightweight && !toldLarge.has(doc)) {
+    toldLarge.add(doc);
+    notify(
+      'info',
+      `${doc.name} is large, so the minimap, guides, folding, Git bars and language server are off for it.`,
+      { detail: 'Settings › Large files turns this off.' },
+    );
+  }
   return [
     // First, so the breakpoint gutter sits left of the line numbers.
     // Vim's keys go before every other keymap.
     compartments.vim.of(parts.vim),
-    options.diff ? [] : [debugProvider(doc), documentProviders.map((provide) => provide(doc))],
+    // (Per-document extras such as # %% cells scan the whole file, so a large one goes without.)
+    options.diff
+      ? []
+      : [debugProvider(doc), lightweight ? [] : documentProviders.map((provide) => provide(doc))],
     compartments.lineNumbers.of(parts.lineNumbers),
-    compartments.git.of(doc.path && !options.diff ? gitGutter(doc.path) : []),
+    compartments.git.of(doc.path && !options.diff && !lightweight ? gitGutter(doc.path) : []),
     compartments.blame.of(parts.blame),
     mergeConflicts,
     compartments.folding.of(parts.folding),
@@ -262,7 +328,7 @@ export function editorExtensions(
     compartments.readOnly.of(parts.readOnly),
     compartments.emmet.of(parts.emmet),
     compartments.extra.of(extraExtensions),
-    compartments.lsp.of(lspProvider(doc)),
+    compartments.lsp.of(lightweight ? [] : lspProvider(doc)),
     EditorView.contentAttributes.of({
       spellcheck: 'false',
       autocorrect: 'off',

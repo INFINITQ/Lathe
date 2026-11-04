@@ -84,6 +84,7 @@ pnpm dev              # the app, with the UI reloading as you edit
 pnpm verify           # every check: format, lint, types, unit and end-to-end tests
 pnpm verify --quick   # the same without the debug build and end-to-end tests
 pnpm build            # the installer, in target\release\bundle\nsis
+pnpm build:perf       # a release-speed build with the test hooks, for measuring (target\perf)
 pnpm licenses:report  # docs/licenses.md
 ```
 

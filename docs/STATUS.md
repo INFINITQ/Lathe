@@ -15,6 +15,7 @@ Updated at the end of every milestone. Each milestone ends with a runnable app, 
 | M7 Notebooks                      | done  |
 | M8 Plugin system                  | done  |
 | M9 Settings UI, polish, packaging | done  |
+| Speed pass                        | done  |
 
 ## M0
 
@@ -521,3 +522,44 @@ files, a 10 MB file opens in 310 ms, keystrokes take 1.7–2.2 ms (median). Scre
 - **Not done:** more than one window. Lathe is one window per instance (a second launch hands
   its arguments to the first); a second window needs per-window folders, servers, terminals and
   sessions throughout the Rust side.
+
+## Speed pass (done)
+
+Measured with `pnpm build:perf` (release speed, test hooks kept) and `e2e/budgets.spec.ts`:
+medians of the old build's warm runs (four) and the new build's (three), on the same PC.
+
+|                                                           |   Before |    After |
+| --------------------------------------------------------- | -------: | -------: |
+| Start to first paint                                      |   593 ms |   481 ms |
+| of which: loading and running the UI's scripts            |   152 ms |    68 ms |
+| of which: first render and paint                          |   143 ms |   126 ms |
+| of which: WebView2 starting                               |   263 ms |   245 ms |
+| JavaScript loaded at start                                | 2,169 KB | 1,290 KB |
+| Quick open, typing to that query's results (20,000 files) |    33 ms |     5 ms |
+| Opening a 10 MB file                                      |   181 ms |   153 ms |
+| Searching 20,000 files, all results                       |   214 ms |   210 ms |
+| Keystroke to screen (median, 10 MB file)                  |   2.2 ms |   1.6 ms |
+| Memory when idle                                          |   104 MB |   102 MB |
+
+- **Less JavaScript at start (41% less):** the terminal (xterm), Vim mode, Emmet, the diff
+  library, the diff, notebook, settings, keyboard shortcuts and Markdown preview editors, and the
+  Search, Source control, Run and debug and Plugins views load the first time they're used
+  (`ui/lazy.tsx`; dynamic imports in `editor/setup.ts` and `editor/gitGutter.ts`).
+- **Tried and dropped: Rust optimised for speed** (`opt-level = 3`). It made `lathe.exe` 3 MB
+  bigger and measured within a few percent on every budget (that work waits on the disk, the IPC
+  and the UI), so release builds stay size-optimised and the installer stays at 4.2 MB.
+- **Quick open asks Rust at once** (it waited 25 ms before each search; stale answers are
+  dropped anyway). The old budget test timed mostly its own round trips; it now times inside
+  the page.
+- **Tabs come back in parallel** (unsaved copies first, then the rest, then previews).
+- **Large-file mode** (`editor.largeFileOptimizations`, on): files over 2 MB or 50,000 lines
+  open without the minimap, sticky scroll, guides, folding, Git bars, blame or language server,
+  with a notice; a big unsaved file is backed up at most every 15 seconds while you type.
+- **WebView2's tracking prevention is off** (Lathe's pages are its own and can't reach the
+  internet, and Microsoft's docs advise it for that).
+- **"Developer: Startup performance"** shows where this window's start-up time went.
+- Already in place: WebView2 gives back memory while the window is minimized (since M0).
+- **Light accents are darker** (lime, mint, amber): quick open's results now arrive before the
+  accessibility test looks, and their highlighted letters were under 4.5:1 on the selected row.
+- **Next:** the language-server client (with Markdown) and the debugger's session code still
+  load at start; WebView2's own start (about 245 ms) is now the largest part of start-up.
