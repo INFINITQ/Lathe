@@ -1,0 +1,60 @@
+[package]
+name = "lathe-core"
+description = "Lathe's engine: files, text, processes, terminals, search, Git, language servers, debuggers, kernels, toolchains and settings. No Tauri dependency."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures-util = { workspace = true }
+bytes = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+ignore = { workspace = true }
+grep-searcher = { workspace = true }
+grep-regex = { workspace = true }
+sha2 = { workspace = true }
+grep-matcher = { workspace = true }
+globset = { workspace = true }
+regex = { workspace = true }
+similar = { workspace = true }
+encoding_rs = { workspace = true }
+chardetng = { workspace = true }
+dunce = { workspace = true }
+notify = { workspace = true }
+notify-debouncer-full = { workspace = true }
+nucleo-matcher = { workspace = true }
+trash = { workspace = true }
+jupyter-zmq-client = { workspace = true }
+jupyter-protocol = { workspace = true }
+zeromq = { workspace = true }
+# Job Objects (process trees), ConPTY (terminals), the Git for Windows registry entry, OEM code
+# pages.
+windows = { workspace = true, features = [
+  "Win32_Foundation",
+  "Win32_Globalization",
+  "Win32_Security",
+  "Win32_System_Console",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_JobObjects",
+  "Win32_System_Pipes",
+  "Win32_System_Registry",
+  "Win32_Storage_FileSystem",
+  "Win32_System_SystemInformation",
+  "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+# A kernel that speaks the protocol in-process, for the kernel tests.
+jupyter-zmq-client = { workspace = true, features = ["test-kernel"] }
+tempfile = { workspace = true }
+pretty_assertions = { workspace = true }
+
+[lints]
+workspace = true

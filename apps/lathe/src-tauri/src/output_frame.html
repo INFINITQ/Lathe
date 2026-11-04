@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+      body {
+        font:
+          13px/1.5 system-ui,
+          'Segoe UI',
+          sans-serif;
+        color: #e4e4e7;
+      }
+      body.light {
+        color: #18181b;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th,
+      td {
+        padding: 4px 10px;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+        text-align: right;
+      }
+      th {
+        font-weight: 600;
+      }
+      img,
+      svg,
+      canvas {
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="out"></div>
+    <script>
+      // One notebook output. Lathe posts its HTML here, and its scripts run in this sandbox
+      // (no access to Lathe's page). The frame reports its height so it can grow to fit.
+      const out = document.getElementById('out');
+      const report = () =>
+        parent.postMessage({ latheHeight: Math.ceil(document.documentElement.scrollHeight) }, '*');
+      window.addEventListener('message', (event) => {
+        if (event.source !== parent) return;
+        const data = event.data || {};
+        if (typeof data.html !== 'string') return;
+        document.body.classList.toggle('light', !data.dark);
+        out.innerHTML = data.html;
+        // innerHTML doesn't run scripts: recreate them, in order.
+        for (const old of out.querySelectorAll('script')) {
+          const script = document.createElement('script');
+          for (const attr of old.attributes) script.setAttribute(attr.name, attr.value);
+          script.async = false;
+          script.textContent = old.textContent;
+          old.replaceWith(script);
+        }
+        report();
+      });
+      new ResizeObserver(report).observe(document.body);
+      parent.postMessage({ latheReady: true }, '*');
+    </script>
+  </body>
+</html>

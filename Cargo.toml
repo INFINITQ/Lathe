@@ -1,0 +1,82 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/*/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[workspace.dependencies]
+# One Tauri 2 release, pinned exactly and the same as Folio and Hearth (Tauri 3 is still alpha).
+tauri = { version = "=2.12.5", features = [] }
+tauri-build = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+# Must stay on the versions Tauri's webview layer (wry) uses; check with
+# `cargo tree -i webview2-com` after any Tauri bump.
+webview2-com = "0.39"
+windows = "0.62"
+rfd = { version = "0.17", default-features = false }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "net", "fs", "process", "signal"] }
+tokio-util = "0.7"
+futures-util = "0.3"
+bytes = "1"
+uuid = { version = "1", features = ["v4", "v7"] }
+tracing = "0.1"
+# Files and text: gitignore-aware walking and matching (ripgrep's crates), encodings, paths.
+ignore = "0.4"
+grep-searcher = "0.1.17"
+grep-regex = "0.1.14"
+grep-matcher = "0.1.9"
+globset = "0.4"
+regex = "1"
+sha2 = "0.10"
+similar = "3"
+encoding_rs = "0.8"
+chardetng = "1"
+dunce = "1"
+# Watching the open folder, fuzzy file matching (quick open), deleting to the Recycle Bin.
+notify = "8.2.1"
+notify-debouncer-full = "0.7.0"
+nucleo-matcher = "0.3.1"
+trash = "5.2.9"
+pretty_assertions = "1"
+# Jupyter kernels: the wire protocol over ZeroMQ, in pure Rust (docs/spikes/jupyter.md). The
+# client needs exactly one runtime and one HMAC backend; zeromq stays on the line it exposes.
+jupyter-zmq-client = { version = "=3.0.1", default-features = false, features = ["tokio-runtime", "ring"] }
+jupyter-protocol = "=2.0.3"
+zeromq = { version = "=0.7.0", default-features = false, features = ["tokio-runtime", "tcp-transport"] }
+
+lathe-core = { path = "crates/lathe-core" }
+lathe-testkit = { path = "crates/lathe-testkit" }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+# See clippy.toml: child processes go through lathe_core::proc.
+disallowed_methods = "deny"
+
+# Size-optimised release builds (Cargo only honours profiles in the workspace root).
+# Panics unwind, so a bug in one feature can't take the whole editor down.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
+# Debug builds optimise dependencies (ripgrep's crates, nucleo, the Windows bindings), so
+# `pnpm dev` and the end-to-end tests feel like the real thing. Lathe's own crates stay
+# unoptimised for fast rebuilds.
+[profile.dev.package."*"]
+opt-level = 2
+
+# The engine does the heavy lifting (decoding, searching, indexing), so it's optimised too.
+[profile.dev.package.lathe-core]
+opt-level = 2

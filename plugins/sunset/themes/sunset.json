@@ -1,0 +1,38 @@
+{
+  // A VS Code colour theme. Lathe maps its workbench colours onto its own design tokens and its
+  // token colours onto the syntax colours; colours it doesn't use are ignored.
+  "name": "Sunset",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1b1420",
+    "editor.foreground": "#f4e4d8",
+    "sideBar.background": "#20172a",
+    "editorWidget.background": "#2a1f33",
+    "list.hoverBackground": "#2c2035",
+    "list.activeSelectionBackground": "#3a2945",
+    "editorGroup.border": "#33263d",
+    "input.border": "#4a3756",
+    "descriptionForeground": "#b69fae",
+    "editorLineNumber.foreground": "#6f5a6d",
+    "button.background": "#ff9e64",
+    "button.foreground": "#1b1420",
+    "textLink.foreground": "#ffb37a",
+    "editor.selectionBackground": "#ff9e6433",
+    "errorForeground": "#ff6b81",
+    "editorWarning.foreground": "#ffd166"
+  },
+  "tokenColors": [
+    { "scope": "comment", "settings": { "foreground": "#7d6a80" } },
+    { "scope": ["string", "string.quoted"], "settings": { "foreground": "#ffc8a0" } },
+    { "scope": ["keyword", "storage"], "settings": { "foreground": "#ff7eb6" } },
+    { "scope": "constant.numeric", "settings": { "foreground": "#ffd166" } },
+    {
+      "scope": ["entity.name.function", "support.function"],
+      "settings": { "foreground": "#ff9e64" }
+    },
+    { "scope": ["entity.name.type", "entity.name.class"], "settings": { "foreground": "#c9a7ff" } },
+    { "scope": "variable", "settings": { "foreground": "#f4e4d8" } },
+    { "scope": "punctuation", "settings": { "foreground": "#a8909f" } },
+    { "scope": "meta.decorator", "settings": { "foreground": "#7ee0c3" } }
+  ]
+}

@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+target/
+*.tsbuildinfo
+.vite/
+
+# Tauri generated files
+apps/*/src-tauri/gen/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Local environment and logs
+.env
+.env.*
+*.log

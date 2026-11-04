@@ -1,0 +1,17 @@
+{
+  "id": "lathe.word-count",
+  "name": "Word count",
+  "version": "1.0.0",
+  "publisher": "Lathe samples",
+  "description": "Shows the active file's word count in the status bar, and counts a selection on demand.",
+  "engines": { "lathe": ">=0.1.0" },
+  "main": "main.js",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "wordCount.count", "title": "Count words", "category": "Word count" }
+    ],
+    "keybindings": [{ "key": "ctrl+alt+w", "command": "wordCount.count" }]
+  },
+  "permissions": []
+}

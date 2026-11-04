@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# `lathe` in Git Bash (and the shells Git runs its editor in); see lathe.cmd beside this file.
+exec "$(dirname "$0")/../lathe.exe" --cli "$@"

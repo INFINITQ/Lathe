@@ -1,0 +1,7 @@
+# Child processes must be created through lathe_core::proc, which hides console windows
+# (CREATE_NO_WINDOW) and puts every process tree in a Windows Job Object, so Stop, closing a
+# terminal and quitting Lathe always end all of it (no orphaned compilers, servers or kernels).
+disallowed-methods = [
+  { path = "std::process::Command::new", reason = "use lathe_core::proc instead" },
+  { path = "tokio::process::Command::new", reason = "use lathe_core::proc instead", allow-invalid = true },
+]

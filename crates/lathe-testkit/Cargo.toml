@@ -1,0 +1,17 @@
+[package]
+name = "lathe-testkit"
+description = "Test doubles for Lathe: a fake language server, debug adapter and Jupyter kernel, plus shared fixtures."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+jupyter-zmq-client = { workspace = true, features = ["test-kernel"] }
+jupyter-protocol = { workspace = true }
+
+[lints]
+workspace = true

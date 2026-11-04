@@ -1,0 +1,12 @@
+{
+  "id": "lathe.sunset",
+  "name": "Sunset",
+  "version": "1.0.0",
+  "publisher": "Lathe samples",
+  "description": "A warm dark colour theme in VS Code's theme format, and a few Python snippets. No code runs.",
+  "engines": { "lathe": ">=0.1.0" },
+  "contributes": {
+    "themes": [{ "label": "Sunset", "uiTheme": "vs-dark", "path": "themes/sunset.json" }],
+    "snippets": [{ "language": "python", "path": "snippets/python.json" }]
+  }
+}

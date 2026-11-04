@@ -1,0 +1,19 @@
+{
+  "Main guard": {
+    "prefix": "ifmain",
+    "body": ["if __name__ == \"__main__\":", "    ${1:main()}$0"],
+    "description": "Run code only when the file runs as a script"
+  },
+  "Dataclass": {
+    "prefix": "dataclass",
+    "body": [
+      "from dataclasses import dataclass",
+      "",
+      "",
+      "@dataclass",
+      "class ${1:Name}:",
+      "    ${2:field}: ${3:int}$0"
+    ],
+    "description": "A class whose fields make its constructor"
+  }
+}

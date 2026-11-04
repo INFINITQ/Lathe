@@ -1,0 +1,146 @@
+/* ── Mono: Lathe's design tokens ─────────────────────────────────────────────────────────────
+   Edge-to-edge near-black, hairline dividers, one lime accent; plus a light twin.
+   Keep --bg in sync with src-tauri/src/theme.rs (the native window background).
+   Contrast (WCAG AA): --text, --text-2 and --text-3 read at 4.5:1 or more on every background,
+   --hover and --active included. --text-4 is for decoration only (line numbers, disabled
+   states), never for text that has to be read. --accent-fg
+   carries text and icons; --accent is a fill, with --accent-ink on top of it. */
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0a0a0b;
+  --bg-raised: #0e0e10;
+  --bg-overlay: #141417;
+  --hover: #17171a;
+  --active: #1f1f23;
+  --line: #1c1c1f;
+  --line-strong: #2a2a2f;
+  --text: #ededf0;
+  --text-2: #a1a1aa;
+  --text-3: #8a8a93;
+  --text-4: #4a4a52;
+  --accent: #d9f99d;
+  --accent-fg: #d9f99d;
+  --accent-ink: #0a0a0b;
+  --accent-soft: rgba(217, 249, 157, 0.1);
+  --selection: rgba(217, 249, 157, 0.14);
+  --focus: rgba(217, 249, 157, 0.55);
+  --active-line: rgba(255, 255, 255, 0.025);
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --info: #93c5fd;
+  --success: #86efac;
+  --caption-hover: rgba(255, 255, 255, 0.06);
+  --caption-press: rgba(255, 255, 255, 0.1);
+  --scrollbar: rgba(255, 255, 255, 0.1);
+  --scrollbar-hover: rgba(255, 255, 255, 0.18);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+
+  /* Syntax (the "Mono" theme): bright keywords, lime functions, grey strings, amber numbers. */
+  --code-fg: #d4d4d8;
+  --syn-keyword: #f4f4f6;
+  --syn-function: var(--accent-fg);
+  --syn-variable: #c9c9cf;
+  --syn-type: #e4e4e7;
+  --syn-string: #a1a1aa;
+  --syn-number: #fcd34d;
+  --syn-comment: #62626c;
+  --syn-punct: #8b8b94;
+  --syn-meta: #bef264;
+  /* ANSI colours for notebook output (the terminal's palette; black reads as grey here). */
+  --ansi-0: #71717a;
+  --ansi-1: #f87171;
+  --ansi-2: #a3e635;
+  --ansi-3: #fcd34d;
+  --ansi-4: #93c5fd;
+  --ansi-5: #d8b4fe;
+  --ansi-6: #67e8f9;
+  --ansi-7: #d4d4d8;
+  --ansi-8: #8b8b94;
+  --ansi-9: #fca5a5;
+  --ansi-10: #d9f99d;
+  --ansi-11: #fde68a;
+  --ansi-12: #bfdbfe;
+  --ansi-13: #e9d5ff;
+  --ansi-14: #a5f3fc;
+  --ansi-15: #fafafa;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #fafafa;
+  --bg-raised: #f4f4f5;
+  --bg-overlay: #ffffff;
+  --hover: #ededee;
+  --active: #e4e4e7;
+  --line: #e7e7ea;
+  --line-strong: #d4d4d8;
+  --text: #111113;
+  --text-2: #52525b;
+  --text-3: #63636b;
+  --text-4: #a1a1aa;
+  --accent: #d9f99d;
+  --accent-fg: #4d7c0f;
+  --accent-ink: #1a2e05;
+  --accent-soft: rgba(101, 163, 13, 0.1);
+  --selection: rgba(101, 163, 13, 0.16);
+  --focus: rgba(77, 124, 15, 0.5);
+  --active-line: rgba(0, 0, 0, 0.025);
+  --danger: #dc2626;
+  --warning: #a14b07;
+  --info: #2563eb;
+  --success: #15803d;
+  --caption-hover: rgba(0, 0, 0, 0.05);
+  --caption-press: rgba(0, 0, 0, 0.09);
+  --scrollbar: rgba(0, 0, 0, 0.14);
+  --scrollbar-hover: rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 12px 32px rgba(17, 17, 19, 0.12), 0 2px 6px rgba(17, 17, 19, 0.08);
+
+  --code-fg: #27272a;
+  --syn-keyword: #111113;
+  --syn-function: var(--accent-fg);
+  --syn-variable: #3f3f46;
+  --syn-type: #27272a;
+  --syn-string: #52525b;
+  --syn-number: #a14b07;
+  --syn-comment: #a1a1aa;
+  --syn-punct: #71717a;
+  --syn-meta: #65a30d;
+  --ansi-0: #27272a;
+  --ansi-1: #b91c1c;
+  --ansi-2: #3f6212;
+  --ansi-3: #a16207;
+  --ansi-4: #1d4ed8;
+  --ansi-5: #7e22ce;
+  --ansi-6: #0e7490;
+  --ansi-7: #71717a;
+  --ansi-8: #a1a1aa;
+  --ansi-9: #dc2626;
+  --ansi-10: #4d7c0f;
+  --ansi-11: #b45309;
+  --ansi-12: #2563eb;
+  --ansi-13: #9333ea;
+  --ansi-14: #0891b2;
+  --ansi-15: #52525b;
+}
+
+:root {
+  --font-ui: 'Inter Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'Cascadia Mono', Consolas, monospace;
+  /* The editor's font: --font-mono unless editor.fontFamily says otherwise (lib/theme.ts). */
+  --font-code: var(--font-mono);
+  --code-line-height: 1.65;
+  --code-ligatures: none;
+  --ui-size: 13px;
+  --code-size: 13px;
+  --titlebar-h: 36px;
+  --rail-w: 44px;
+  --tabs-h: 34px;
+  --statusbar-h: 24px;
+  --row-h: 22px;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 120ms;
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Lathe",
+  "version": "0.1.0",
+  "identifier": "app.lathe",
+  "build": {
+    "devUrl": "http://localhost:5190",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "pnpm --filter @lathe/app dev:web",
+    "beforeBuildCommand": "pnpm --filter @lathe/app build:web"
+  },
+  "app": {
+    "windows": [],
+    "withGlobalTauri": false,
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' 'wasm-unsafe-eval'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' blob: data:",
+        "media-src": "'self' blob: data:",
+        "font-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost blob: data:",
+        "worker-src": "'self' blob:",
+        "frame-src": "http://lathe-output.localhost http://lathe-plugin.localhost",
+        "object-src": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'"
+      },
+      "dangerousDisableAssetCspModification": ["style-src"],
+      "freezePrototype": true,
+      "capabilities": ["main"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "Lathe",
+    "shortDescription": "A fast, minimal code editor",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "skip"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "installer-hooks.nsh"
+      }
+    },
+    "resources": {
+      "bin/lathe.cmd": "bin/lathe.cmd",
+      "bin/lathe": "bin/lathe",
+      "bin/lathe-path.ps1": "bin/lathe-path.ps1"
+    }
+  }
+}
