@@ -41,6 +41,10 @@ because the same code runs here.
   still shows at once, and it retries sharing violations and reports unreadable files rather
   than dropping them silently.
 - **Long paths:** enable `longPathAware` in the manifest.
+- **The user PATH** (`HKCU\Environment`) isn't always `REG_EXPAND_SZ`: other programs rewrite it as
+  `REG_SZ`, sometimes with empty entries (`;;`). `bin\lathe-path.ps1` keeps its type and every
+  entry, so uninstalling gives back the same value. Test it with `-Name` on a scratch value, and
+  never pass `powershell -File` a quoted argument ending in `\`: the backslash escapes the quote.
 - **File URIs for LSP:** use a lower-case drive letter and `%3A`, and compare paths
   case-insensitively.
 

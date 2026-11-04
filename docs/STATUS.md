@@ -492,10 +492,12 @@ files, a 10 MB file opens in 310 ms, keystrokes take 1.7–2.2 ms (median). Scre
 - **Installer** (`pnpm build`): per-user NSIS with hooks (`installer-hooks.nsh`) for "Open with
   Lathe" on files, folders and folder backgrounds, Lathe in "Open with" and Default Apps for code
   files (no default is changed), and `bin` on the user PATH (`bin\lathe-path.ps1`, keeping the
-  PATH's form). The uninstaller removes all of it. `pnpm licenses:report` writes
+  PATH's text and registry type). The uninstaller removes all of it. `pnpm licenses:report` writes
   `docs/licenses.md`. Checked with a silent install and uninstall (`/S`): the installer is
   4.2 MB; every file, verb, type and PATH entry appears, a code file's default is untouched, and
-  after uninstalling none of it is left and the user PATH is byte-for-byte what it was.
+  after uninstalling none of it is left and the user PATH is byte-for-byte what it was. The helper
+  keeps a `REG_SZ` PATH as `REG_SZ` too (it used to switch it to `REG_EXPAND_SZ`); checked on
+  scratch values.
 - **Accessibility:** `e2e/a11y.spec.ts` runs axe (WCAG 2.2 A/AA and best practices) on 13
   screens in dark and light; all pass. Fixes it led to:
   - contrast: the third text grey and light amber are darker or lighter so they read at 4.5:1 on
