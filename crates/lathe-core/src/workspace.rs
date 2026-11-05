@@ -13,7 +13,7 @@ use std::time::Duration;
 use notify::event::{ModifyKind, RenameMode};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_full::{
-    DebounceEventResult, DebouncedEvent, Debouncer, RecommendedCache, new_debouncer,
+    DebounceEventResult, DebouncedEvent, Debouncer, NoCache, new_debouncer_opt,
 };
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};
@@ -72,7 +72,7 @@ pub struct Workspace {
     root: PathBuf,
     files: Arc<RwLock<Vec<String>>>,
     indexed: Arc<AtomicBool>,
-    watcher: Mutex<Option<Debouncer<RecommendedWatcher, RecommendedCache>>>,
+    watcher: Mutex<Option<Debouncer<RecommendedWatcher, NoCache>>>,
 }
 
 impl Workspace {
@@ -101,7 +101,13 @@ impl Workspace {
         });
 
         let (files, watch_root) = (workspace.files.clone(), root.clone());
-        let mut debouncer = new_debouncer(
+        // No file-ID cache. On Windows the debouncer's default one (`FileIdMap`) walks the whole
+        // folder before watching starts, following links, and opens every file and folder in
+        // it, node_modules, target and .git included: minutes of processor time and gigabytes
+        // of memory for a pnpm monorepo. It walks each new folder, and everything again after an
+        // overflow, too. All it adds is pairing the two halves of a rename, and `to_changes`
+        // turns a rename into a removal and a creation either way.
+        let mut debouncer = new_debouncer_opt::<_, RecommendedWatcher, NoCache>(
             Duration::from_millis(120),
             None,
             move |result: DebounceEventResult| {
@@ -118,6 +124,8 @@ impl Workspace {
                 update_index(&watch_root, &files, &changes);
                 sink.changes(changes);
             },
+            NoCache::new(),
+            notify::Config::default(),
         )
         .map_err(std::io::Error::other)?;
         debouncer
@@ -462,6 +470,46 @@ mod tests {
             "{seen:?}"
         );
         assert_eq!(workspace.find_files("b.txt", 5)[0].path, "b.txt");
+        workspace.close();
+    }
+
+    #[test]
+    fn a_rename_on_disk_is_a_removal_and_a_creation() {
+        let dir = tempfile::tempdir().unwrap();
+        files(dir.path(), &["a.txt"]);
+        let (tx, rx) = mpsc::channel();
+        let workspace = Workspace::open(dir.path(), Arc::new(ToChannel(Mutex::new(tx)))).unwrap();
+        for _ in 0..100 {
+            if workspace.is_indexed() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+
+        std::fs::rename(dir.path().join("a.txt"), dir.path().join("c.txt")).unwrap();
+        let gone = |seen: &[Change]| {
+            seen.iter()
+                .any(|c| c.kind == ChangeKind::Removed && c.path.ends_with("a.txt"))
+        };
+        let came = |seen: &[Change]| {
+            seen.iter()
+                .any(|c| c.kind == ChangeKind::Created && c.path.ends_with("c.txt"))
+        };
+        let mut seen = Vec::new();
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while std::time::Instant::now() < deadline && !(gone(&seen) && came(&seen)) {
+            if let Ok(batch) = rx.recv_timeout(Duration::from_millis(200)) {
+                seen.extend(batch);
+            }
+        }
+        assert!(gone(&seen) && came(&seen), "{seen:?}");
+        assert_eq!(workspace.find_files("c.txt", 5)[0].path, "c.txt");
+        assert!(
+            workspace
+                .find_files("a.txt", 5)
+                .iter()
+                .all(|m| m.path != "a.txt")
+        );
         workspace.close();
     }
 }

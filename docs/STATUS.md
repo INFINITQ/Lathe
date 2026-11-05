@@ -565,3 +565,23 @@ medians of the old build's warm runs (four) and the new build's (three), on the 
   accessibility test looks, and their highlighted letters were under 4.5:1 on the selected row.
 - **Next:** the language-server client (with Markdown) and the debugger's session code still
   load at start; WebView2's own start (about 245 ms) is now the largest part of start-up.
+
+## Opening big folders (done)
+
+Opening a folder made Lathe walk all of it first. On Windows, the file watcher's library
+(`notify-debouncer-full`, with its default file-ID cache) opens every file and folder to note
+its ID before it starts watching, following links: `node_modules`, `target` and `.git` included.
+pnpm's linked packages made it visit the same files many times over. Lathe now watches without
+that cache (`workspace.rs`); a rename still arrives as a removal and a creation (tested).
+Measured with `e2e/open-folder.spec.ts` on a release-speed build, from clicking Open folder to
+the explorer's first row:
+
+| Folder                                                       |     Before | After |
+| ------------------------------------------------------------ | ---------: | ----: |
+| Test folder: 20,000 build files, 200 packages linked by pnpm |      1.9 s | 20 ms |
+| A Rust + pnpm app: 85,000 files, 62,000 of them in `target`  |     11.1 s | 21 ms |
+| A pnpm monorepo: 107,000 files, 88,000 in `node_modules`     | 6 min 38 s | 20 ms |
+
+Lathe's own processor time while opening the monorepo went from 6½ minutes to 94 ms, and the
+memory the opening added from 1.7 GB to 3 MB. The test folder is now a budget (under 500 ms,
+and under 500 ms of processor time); `LATHE_OPEN_FOLDERS="D:/a;D:/b"` times real folders.

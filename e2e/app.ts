@@ -4,7 +4,7 @@
 // (LATHE_TEST_DATA_DIR), so tests never touch the installed app's settings or session.
 
 import { type Browser, type Page, chromium } from '@playwright/test';
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -107,6 +107,35 @@ export async function launchApp(
       if (errors.length) throw new Error(`The app threw uncaught errors:\n${errors.join('\n')}`);
     },
   };
+}
+
+/**
+ * Memory as Task Manager counts it: the private working set of the app and every WebView2
+ * process it started, in MB.
+ */
+export function memoryMb(pid: number): number {
+  const script = [
+    '$all = Get-CimInstance Win32_Process',
+    `$ids = [System.Collections.Generic.HashSet[uint32]]::new(); [void]$ids.Add(${pid})`,
+    'do { $added = $false; foreach ($p in $all) { if ($ids.Contains([uint32]$p.ParentProcessId) -and $ids.Add([uint32]$p.ProcessId)) { $added = $true } } } while ($added)',
+    '$ws = @{}; Get-CimInstance Win32_PerfRawData_PerfProc_Process | ForEach-Object { $ws[[uint32]$_.IDProcess] = [uint64]$_.WorkingSetPrivate }',
+    '$total = 0; $all | Where-Object { $ids.Contains([uint32]$_.ProcessId) } | ForEach-Object { $total += $ws[[uint32]$_.ProcessId] }',
+    '$total',
+  ].join('\n');
+  const out = execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    encoding: 'utf8',
+  });
+  return Math.round(Number(out.trim()) / 2 ** 20);
+}
+
+/** `memoryMb` after a garbage collection and a moment to settle. */
+export async function settledMemory(page: Page, pid: number): Promise<number> {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('HeapProfiler.enable');
+  await cdp.send('HeapProfiler.collectGarbage');
+  await cdp.detach();
+  await page.waitForTimeout(1500);
+  return memoryMb(pid);
 }
 
 /** Records content-policy violations from now on. */

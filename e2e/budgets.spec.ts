@@ -4,36 +4,11 @@
 // editor's DOM. Memory is what Task Manager counts: the private working set of the app and
 // every WebView2 process it started. Numbers are printed; the limits leave room for debug.
 
-import { type Page, expect, test } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
+import { expect, test } from '@playwright/test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { launchApp } from './app';
-
-function memoryMb(pid: number): number {
-  const script = [
-    '$all = Get-CimInstance Win32_Process',
-    `$ids = [System.Collections.Generic.HashSet[uint32]]::new(); [void]$ids.Add(${pid})`,
-    'do { $added = $false; foreach ($p in $all) { if ($ids.Contains([uint32]$p.ParentProcessId) -and $ids.Add([uint32]$p.ProcessId)) { $added = $true } } } while ($added)',
-    '$ws = @{}; Get-CimInstance Win32_PerfRawData_PerfProc_Process | ForEach-Object { $ws[[uint32]$_.IDProcess] = [uint64]$_.WorkingSetPrivate }',
-    '$total = 0; $all | Where-Object { $ids.Contains([uint32]$_.ProcessId) } | ForEach-Object { $total += $ws[[uint32]$_.ProcessId] }',
-    '$total',
-  ].join('\n');
-  const out = execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
-    encoding: 'utf8',
-  });
-  return Math.round(Number(out.trim()) / 2 ** 20);
-}
-
-async function settledMemory(page: Page, pid: number): Promise<number> {
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('HeapProfiler.enable');
-  await cdp.send('HeapProfiler.collectGarbage');
-  await cdp.detach();
-  await page.waitForTimeout(1500);
-  return memoryMb(pid);
-}
+import { launchApp, settledMemory } from './app';
 
 function makeBigProject(): string {
   const dir = mkdtempSync(join(tmpdir(), 'lathe-budget-'));

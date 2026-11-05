@@ -80,6 +80,14 @@ because the same code runs here.
   catch the previous screen.
 - **"Developer: Startup performance"** shows each start-up step of the current window (Rust's
   from the boot data, the page's from `performance` marks).
+- **Watching a folder must not walk it.** `notify-debouncer-full`'s default file-ID cache
+  (`RecommendedCache`, which is `FileIdMap` on Windows) walks the whole folder before `watch()`
+  returns, following links, and opens every file and folder in it: node_modules, target and .git
+  included. It does it again for each new folder and after every overflow. Opening a pnpm
+  monorepo took 6½ minutes of processor time and 1.7 GB before the explorer showed anything.
+  Lathe uses `NoCache`: the cache only pairs up the two halves of a rename, and Lathe treats a
+  rename as a removal and a creation anyway. `e2e/open-folder.spec.ts` keeps a heavy folder
+  opening in under 500 ms; `LATHE_OPEN_FOLDERS="D:/a;D:/b"` times real folders the same way.
 
 ## CI and releases (GitHub Actions)
 
